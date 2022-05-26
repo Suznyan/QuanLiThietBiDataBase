@@ -1,6 +1,7 @@
 package com.suzuha.baithiquanlythietbi;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,6 +10,7 @@ import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     RVadapter RVadapter;
     ActivityResultLauncher<Intent> SecondActivityResultLauncher;
     DataBase dataBase;
+    ItemClickListener itemClickListener;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -30,13 +33,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAL = new ArrayList<>();
         RV = findViewById(R.id.RV);
 
-
-        RVadapter = new RVadapter(this, mAL);
-        RV.setAdapter(RVadapter);
-        RV.setLayoutManager(new LinearLayoutManager(this));
+//        RV.setLayoutManager(new LinearLayoutManager(this));
         openSecondActivityForResult();
         Intent intent = new Intent(MainActivity.this, SecondActivity.class);
 
@@ -45,27 +44,47 @@ public class MainActivity extends AppCompatActivity {
             SecondActivityResultLauncher.launch(intent);
         });
 
-        RV.addOnItemTouchListener(new RecyclerItemClickListener(MainActivity.this, RV,
-                new RecyclerItemClickListener.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(View view, int position) {
-                        item A = mAL.get(position);
-                        intent.putExtra("index", position);
-                        intent.putExtra("url", A.url);
-                        intent.putExtra("title", A.title);
-                        intent.putExtra("brand", A.Brand);
-                        intent.putExtra("year", A.Year);
-                        intent.putExtra("detail", A.Detail);
-                        SecondActivityResultLauncher.launch(intent);
-                    }
-
-                    @Override
-                    public void onLongItemClick(View view, int position) {
-                    }
-                }));
-
+        itemClickListener = (position, value) -> {
+            AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+            alert.setMessage("");
+            alert.setPositiveButton("Edit", (dialogInterface, i) -> {
+                item A = mAL.get(position);
+                intent.putExtra("index", position);
+                intent.putExtra("url", A.url);
+                intent.putExtra("title", A.title);
+                intent.putExtra("brand", A.Brand);
+                intent.putExtra("year", A.Year);
+                intent.putExtra("detail", A.Detail);
+                SecondActivityResultLauncher.launch(intent);
+            });
+            alert.setNegativeButton("Delete", (dialogInterface, i) -> {
+                dataBase.deleteDevice(mAL.get(position));
+                mAL.remove(position);
+                RVadapter.notifyDataSetChanged();
+            });
+        };
     }
 
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        mAL = new ArrayList<item>();
+        dataBase = new DataBase(this);
+        mAL = dataBase.readDanhSach();
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        RV.setLayoutManager(linearLayoutManager);
+        RVadapter = new RVadapter(getApplicationContext(),mAL, itemClickListener);
+        RV.setAdapter(RVadapter);
+        RVadapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onStop()
+    {
+        super.onStop();
+
+    }
 
     public void openSecondActivityForResult() {
         SecondActivityResultLauncher = registerForActivityResult(

@@ -18,13 +18,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 
 public class RVadapter extends RecyclerView.Adapter<RVadapter.MyViewHolder> {
-    ArrayList<item> mAL;
-    Context context;
-    DataBase dataBase;
+    private ArrayList<item> mAL;
+    private Context context;
+    private ItemClickListener itemClickListener;
+    private int selectedPosition = -1;
 
-    public RVadapter(Context ct, ArrayList<item> Arraylist) {
+    public RVadapter(Context ct, ArrayList<item> Arraylist, ItemClickListener itemClickListener) {
         context = ct;
         mAL = Arraylist;
+        this.itemClickListener = itemClickListener;
     }
 
     @NonNull
@@ -51,20 +53,21 @@ public class RVadapter extends RecyclerView.Adapter<RVadapter.MyViewHolder> {
             }
         });
 
-        holder.mainLayout.setOnLongClickListener(view -> {
-            AlertDialog.Builder builder = new AlertDialog.Builder(holder.mainLayout.getContext());
-            builder
-                    .setTitle("Lưu ý")
-                    .setMessage("Xóa thiết bị này?")
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton("Đồng ý", (dialogInterface, i) -> {
-                        dataBase.deleteDevice(mAL.get(position));
-                        mAL.remove(position);
-                        notifyItemRemoved(position);
-                    })
-                    .setNegativeButton("Không", null)
-                    .show();
-            return false;
+        holder.mainLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int position = holder.getAdapterPosition();
+                itemClickListener.onClick(position,mAL.get(position));
+                selectedPosition = position;
+                notifyDataSetChanged();
+            }
+        });
+
+        holder.mainLayout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                return false;
+            }
         });
     }
 
@@ -74,8 +77,8 @@ public class RVadapter extends RecyclerView.Adapter<RVadapter.MyViewHolder> {
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
-        TextView Title, Status;
-        ImageView myImage;
+        private TextView Title, Status;
+        private ImageView myImage;
         Switch deviceSwitch;
         ConstraintLayout mainLayout;
 
